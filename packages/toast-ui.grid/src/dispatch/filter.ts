@@ -58,7 +58,7 @@ export function toggleSelectAllCheckbox(store: Store, checked: boolean) {
   }
 }
 
-export function setActiveSelectFilterState(store: Store, value: string, checked: boolean) {
+export function setActiveSelectFilterState(store: Store, value: any, checked: boolean) {
   const { column, filterLayerState } = store;
   const { activeFilterState } = filterLayerState;
   const columnName = filterLayerState.activeColumnAddress!.name;

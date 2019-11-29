@@ -34,7 +34,7 @@ class SelectFilterComp extends Component<Props> {
     searchInput: ''
   };
 
-  private handleChange = debounce((ev: Event, id: string) => {
+  private handleChange = debounce((ev: Event, id: any) => {
     const { dispatch } = this.props;
     const { checked } = ev.target as HTMLInputElement;
 
@@ -91,7 +91,7 @@ class SelectFilterComp extends Component<Props> {
                   <input
                     type="checkbox"
                     checked={checked}
-                    onChange={ev => this.handleChange(ev, text)}
+                    onChange={ev => this.handleChange(ev, value)}
                   />
                   <span>{value}</span>
                 </label>
