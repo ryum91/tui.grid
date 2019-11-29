@@ -1197,7 +1197,9 @@ export default class Grid {
    * @param {Function} fn - event handler
    */
   public on(eventName: string, fn: Function) {
-    this.eventBus.on(eventName, fn);
+    if (this.eventBus) {
+      this.eventBus.on(eventName, fn);
+    }
   }
 
   /**
@@ -1206,7 +1208,9 @@ export default class Grid {
    * @param {Function} fn - event handler
    */
   public off(eventName: string, fn?: Function) {
-    this.eventBus.off(eventName, fn);
+    if (this.eventBus) {
+      this.eventBus.off(eventName, fn);
+    }
   }
 
   /**
