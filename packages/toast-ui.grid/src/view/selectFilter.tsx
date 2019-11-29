@@ -52,11 +52,13 @@ class SelectFilterComp extends Component<Props> {
   }, FILTER_DEBOUNCE_TIME);
 
   public render() {
-    const { columnData, isAllSelected } = this.props;
+    const { columnData, isAllSelected, columnInfo } = this.props;
     const { searchInput } = this.state;
     const data = searchInput.length
       ? columnData.filter(item => String(item.value).indexOf(searchInput) !== -1)
       : columnData;
+
+    const { formatter } = columnInfo;
 
     return (
       <div className={cls('filter-list-container')}>
@@ -80,7 +82,10 @@ class SelectFilterComp extends Component<Props> {
         <ul className={cls('filter-list')}>
           {data.map(item => {
             const { value, checked } = item;
-            const text = String(value);
+            let text = String(value);
+            if (formatter) {
+              text = (formatter as Function)({ value });
+            }
 
             return (
               <li
@@ -93,7 +98,7 @@ class SelectFilterComp extends Component<Props> {
                     checked={checked}
                     onChange={ev => this.handleChange(ev, value)}
                   />
-                  <span>{value}</span>
+                  <span>{text}</span>
                 </label>
               </li>
             );
