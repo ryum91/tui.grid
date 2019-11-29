@@ -220,7 +220,7 @@ export interface ColumnFilterOption {
 
 export type NumberFilterCode = 'eq' | 'lt' | 'gt' | 'lte' | 'gte' | 'ne';
 export type TextFilterCode = 'eq' | 'ne' | 'contain' | 'start' | 'end';
-export type DateFilterCode = 'eq' | 'ne' | 'after' | 'afterEq' | 'before' | 'beforeEq';
+export type DateFilterCode = 'contain' | 'after' | 'before';
 
 export interface FilterState {
   code: NumberFilterCode | TextFilterCode | DateFilterCode | null;

@@ -113,7 +113,7 @@ class DatePickerFilterComp extends Component<Props> {
     const { filterIndex, filterState } = this.props;
     const { state } = filterState;
 
-    let code = 'eq';
+    let code = 'contain';
     let value = '';
 
     if (state.length && state[filterIndex]) {

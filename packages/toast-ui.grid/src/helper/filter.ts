@@ -25,12 +25,9 @@ export const filterSelectOption: FilterSelectOption = {
     end: 'Ends with'
   },
   date: {
-    eq: 'Equals',
-    ne: 'Not equals',
+    contain: 'Equals',
     after: 'After',
-    afterEq: 'After or Equal',
-    before: 'Before',
-    beforeEq: 'Before or Equal'
+    before: 'Before'
   }
 };
 
@@ -83,12 +80,8 @@ export function getFilterConditionFn(
         isString(cellValue) && isString(inputValue) && endsWith(inputValue, cellValue);
     case 'after':
       return cellValue => getUnixTime(cellValue) > getUnixTime(inputValue);
-    case 'afterEq':
-      return cellValue => getUnixTime(cellValue) >= getUnixTime(inputValue);
     case 'before':
       return cellValue => getUnixTime(cellValue) < getUnixTime(inputValue);
-    case 'beforeEq':
-      return cellValue => getUnixTime(cellValue) <= getUnixTime(inputValue);
     default:
       throw new Error('code not available.');
   }
