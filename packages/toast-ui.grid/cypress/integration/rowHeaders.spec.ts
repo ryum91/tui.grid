@@ -5,9 +5,6 @@ before(() => {
 });
 
 beforeEach(() => {
-  cy.document().then(doc => {
-    doc.body.innerHTML = '';
-  });
   cy.createGrid({
     data: [{ name: 'A' }, { name: 'B' }, { name: 'C' }],
     rowHeaders: ['checkbox'],
@@ -56,11 +53,13 @@ describe('row header API', () => {
   it('getCheckedRows', () => {
     cy.gridInstance().invoke('check', 0);
     cy.gridInstance().invoke('check', 2);
-
     cy.gridInstance()
       .invoke('getCheckedRows')
       .should(result => {
-        expect(result).to.contain.subset([{ rowKey: 0, name: 'A' }, { rowKey: 2, name: 'C' }]);
+        expect(result).to.contain.subset([
+          { rowKey: 0, name: 'A' },
+          { rowKey: 2, name: 'C' }
+        ]);
       });
   });
 
@@ -95,9 +94,6 @@ describe('row header API', () => {
 });
 
 it('checkedAllRows initial value has to be set properly', () => {
-  cy.document().then(doc => {
-    doc.body.innerHTML = '';
-  });
   cy.createGrid({
     data: [
       {
@@ -125,9 +121,6 @@ it('checkedAllRows initial value has to be set properly', () => {
 });
 
 it('rowHeader with custom options.', () => {
-  cy.document().then(doc => {
-    doc.body.innerHTML = '';
-  });
   cy.createGrid({
     data: [{ name: 'A' }],
     rowHeaders: [

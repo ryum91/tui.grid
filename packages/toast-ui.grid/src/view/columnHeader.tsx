@@ -67,6 +67,12 @@ export class ColumnHeader extends Component<Props> {
     }
   }
 
+  public componentWillReceiveProps(nextProps: Props) {
+    if (this.renderer) {
+      this.renderer.render({ columnInfo: nextProps.columnInfo, grid: nextProps.grid });
+    }
+  }
+
   public componentWillUnmount() {
     if (this.renderer && isFunction(this.renderer.beforeDestroy)) {
       this.renderer.beforeDestroy();
@@ -95,8 +101,8 @@ export class ColumnHeader extends Component<Props> {
           [!isRowHeader(name) && selected, 'cell-selected'],
           [isRowHeader(name), 'cell-row-header']
         )}
-        {...!!colspan && { colspan }}
-        {...!!rowspan && { rowspan }}
+        {...(!!colspan && { colspan })}
+        {...(!!rowspan && { rowspan })}
       >
         {['checkbox', 'sortingBtn', 'sortingOrder', 'filter'].map(type => this.getElement(type))}
       </th>
