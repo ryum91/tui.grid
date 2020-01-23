@@ -36,9 +36,10 @@ module.exports = (env, { mode = 'development' }) => {
   if (mode === 'production') {
     const { version, author, license } = package;
     const banner = [
-      `TOAST UI Grid`,
+      `TOAST UI Grid - PNPSECURE custom version`,
       `@version ${version} | ${new Date().toDateString()}`,
       `@author ${author}`,
+      `@modifier PNPSECURE crpark`,
       `@license ${license}`
     ].join('\n');
     const productionConfig = {

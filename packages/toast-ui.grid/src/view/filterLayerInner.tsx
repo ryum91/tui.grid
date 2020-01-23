@@ -25,11 +25,11 @@ type Props = StoreProps & OwnProps & DispatchProps;
 
 export class FilterLayerInnerComp extends Component<Props> {
   private calculateLeft() {
+    const { width } = this.context.store.dimension;
     const { left } = this.props.columnAddress;
-    const offsetWidth = document.body.offsetWidth;
 
-    if (left + 230 > offsetWidth) {
-      return offsetWidth - 230;
+    if (left + 230 > width) {
+      return width - 230;
     }
     return left;
   }

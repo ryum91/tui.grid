@@ -1,4 +1,3 @@
-import { cls } from '../../src/helper/dom';
 import { Range } from '@/store/types';
 
 // unable to test clipboard
@@ -10,10 +9,6 @@ before(() => {
 });
 
 beforeEach(() => {
-  cy.document().then(doc => {
-    doc.body.innerHTML = '';
-  });
-
   const data = [
     { name: 'Han', value: 1 },
     { name: 'Kim', value: 2 },
@@ -21,7 +16,10 @@ beforeEach(() => {
     { name: 'Lee', value: 4 }
   ];
 
-  const columns = [{ name: 'name', editor: 'text' }, { name: 'value', editor: 'text' }];
+  const columns = [
+    { name: 'name', editor: 'text' },
+    { name: 'value', editor: 'text' }
+  ];
 
   cy.createGrid({ data, columns });
 });

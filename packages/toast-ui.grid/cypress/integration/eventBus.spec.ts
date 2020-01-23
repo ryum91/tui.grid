@@ -12,10 +12,6 @@ before(() => {
 });
 
 beforeEach(() => {
-  cy.document().then(doc => {
-    doc.body.innerHTML = '';
-  });
-
   cy.createGrid({
     data,
     columns,
@@ -266,10 +262,6 @@ it('sort', () => {
 it('gridMounted', () => {
   const callback = cy.stub();
 
-  cy.document().then(doc => {
-    doc.body.innerHTML = '';
-  });
-
   cy.createGrid({
     data,
     columns,
@@ -284,10 +276,6 @@ it('gridMounted', () => {
 
 it('gridBeforeDestroy', () => {
   const callback = cy.stub();
-
-  cy.document().then(doc => {
-    doc.body.innerHTML = '';
-  });
 
   cy.createGrid({
     data,
@@ -313,7 +301,9 @@ it('columnResize', () => {
     .trigger('mousemove', { pageX: 400 })
     .trigger('mouseup')
     .should(() => {
-      expect(callback.args[0][0]).to.contain.subset({ columnName: 'name', width: 311 });
+      expect(callback.args[0][0]).to.contain.subset({
+        resizedColumns: [{ columnName: 'name', width: 311 }]
+      });
     });
 });
 

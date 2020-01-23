@@ -1,12 +1,30 @@
 import { OptColumn } from '../../src/types';
 import { cls } from '@/helper/dom';
-import { runMockServer } from '../helper/runMockServer';
 
 const columns: OptColumn[] = [{ name: 'A' }, { name: 'B' }];
 
 before(() => {
   cy.visit('/dist');
 });
+
+function runMockServer() {
+  cy.server();
+  cy.route({
+    method: 'GET',
+    url: '/api/read?perPage=10&page=1',
+    delay: 5000,
+    response: {
+      result: true,
+      data: {
+        contents: [{ A: 'test', B: 'test' }],
+        pagination: {
+          page: 1,
+          totalCount: 2
+        }
+      }
+    }
+  });
+}
 
 const data = {
   initialRequest: false,
@@ -21,9 +39,6 @@ it('should show "No data." text when there is no data.', () => {
 });
 
 it('should show "Loading data." text when fetch data.', () => {
-  cy.document().then(doc => {
-    doc.body.innerHTML = '';
-  });
   runMockServer();
   cy.createGrid({ columns, data });
 
