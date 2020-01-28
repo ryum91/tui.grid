@@ -17,11 +17,11 @@ import { updateAllSummaryValues } from './summary';
 function initLayerAndScrollAfterFiltering(store: Store) {
   const { data } = store;
 
-  updatePageOptions(data, data.filteredRawData.length);
-  updateHeights(store);
-  setScrollTop(store, 0);
   initSelection(store);
   initFocus(store);
+  updatePageOptions(store, { totalCount: data.filteredRawData.length, page: 1 });
+  updateHeights(store);
+  setScrollTop(store, 0);
   updateRowNumber(store, 0);
   setCheckedAllRows(store);
 }
@@ -47,7 +47,7 @@ export function toggleSelectAllCheckbox(store: Store, checked: boolean) {
   const columnInfo = column.allColumnMap[columnName];
 
   if (checked) {
-    const columnData = getUniqColumnData(data.rawData, columnName);
+    const columnData = getUniqColumnData(data.rawData, column, columnName);
     activeFilterState!.state = columnData.map(value => ({ code: 'eq', value })) as FilterState[];
   } else {
     activeFilterState!.state = [];
@@ -101,7 +101,7 @@ export function setActiveColumnAddress(store: Store, address: ActiveColumnAddres
   }
 
   if (type === 'select' && !initialState.length) {
-    const columnData = getUniqColumnData(filteredRawData, columnName);
+    const columnData = getUniqColumnData(filteredRawData, column, columnName);
     initialState = columnData.map(value => ({ code: 'eq', value })) as FilterState[];
   }
 
@@ -114,7 +114,7 @@ export function setActiveColumnAddress(store: Store, address: ActiveColumnAddres
 }
 
 export function applyActiveFilterState(store: Store) {
-  const { filterLayerState, data } = store;
+  const { filterLayerState, data, column } = store;
   const columnName = filterLayerState.activeColumnAddress!.name;
   const { state, type, operator } = filterLayerState.activeFilterState!;
   const validState = state.filter(item => String(item.value).length);
@@ -127,7 +127,7 @@ export function applyActiveFilterState(store: Store) {
   filterLayerState.activeFilterState!.state = validState;
 
   if (type === 'select') {
-    const columnData = getUniqColumnData(data.rawData, columnName);
+    const columnData = getUniqColumnData(data.rawData, column, columnName);
     if (columnData.length === state.length) {
       unfilter(store, columnName);
       return;
@@ -181,7 +181,7 @@ export function filter(
   const { type } = columnFilterInfo;
   const filterIndex = findPropIndex('columnName', columnName, filters);
 
-  updatePageOptions(data, data.pageOptions.totalCount, 1);
+  updatePageOptions(store, { page: 1 });
 
   if (filterIndex >= 0) {
     const columnFilter = filters[filterIndex];

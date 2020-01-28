@@ -14,7 +14,7 @@ import { isHiddenColumn } from '../query/column';
 function makeObservable(store: Store, rowKey: RowKey) {
   const { data, column, id } = store;
   const { rawData, viewData } = data;
-  const { allColumnMap, treeColumnName, treeIcon } = column;
+  const { columnMapWithRelation, treeColumnName, treeIcon, defaultValues } = column;
   const foundIndex = findIndexByRowKey(data, column, id, rowKey, false);
   const rawRow = rawData[foundIndex];
 
@@ -24,17 +24,22 @@ function makeObservable(store: Store, rowKey: RowKey) {
 
   if (treeColumnName) {
     const parentRow = findRowByRowKey(data, column, id, rawRow._attributes.tree!.parentRowKey);
-    rawData[foundIndex] = createTreeRawRow(rawRow, column.defaultValues, parentRow || null);
+    rawData[foundIndex] = createTreeRawRow(
+      rawRow,
+      column.defaultValues,
+      parentRow || null,
+      columnMapWithRelation
+    );
     viewData[foundIndex] = createViewRow(
       rawData[foundIndex],
-      allColumnMap,
+      columnMapWithRelation,
       rawData,
       treeColumnName,
       treeIcon
     );
   } else {
-    rawData[foundIndex] = createRawRow(rawRow, foundIndex, column.defaultValues);
-    viewData[foundIndex] = createViewRow(rawData[foundIndex], allColumnMap, rawData);
+    rawData[foundIndex] = createRawRow(rawRow, foundIndex, defaultValues, columnMapWithRelation);
+    viewData[foundIndex] = createViewRow(rawData[foundIndex], columnMapWithRelation, rawData);
   }
   notify(data, 'rawData');
   notify(data, 'viewData');
@@ -186,8 +191,8 @@ export function saveAndFinishEditing(store: Store, value?: string) {
 
   // if value is 'undefined', editing result is saved and finished.
   if (isUndefined(value)) {
-    focus.editingAddress = null;
     focus.forcedDestroyEditing = true;
+    focus.editingAddress = null;
     focus.navigating = true;
     return;
   }

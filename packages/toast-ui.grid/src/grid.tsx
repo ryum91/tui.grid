@@ -47,8 +47,8 @@ import {
 } from './query/data';
 import { isRowHeader } from './helper/column';
 import { createProvider } from './dataSource/serverSideDataProvider';
-import { createManager } from './dataSource/modifiedDataManager';
-import { getConfirmMessage } from './dataSource/helper/message';
+import { createManager } from './dataSource/manager/modifiedDataManager';
+import { getConfirmMessage } from './i18n/message';
 import { PaginationManager, createPaginationManager } from './pagination/paginationManager';
 import {
   RequestOptions,
@@ -1231,7 +1231,8 @@ export default class Grid {
     if (pagination) {
       const { pageOptions } = this.store.data;
       if (pageOptions.useClient) {
-        this.dispatch('setPagination', { ...pageOptions, perPage, page: 1 });
+        this.dispatch('updatePageOptions', { perPage, page: 1 });
+        this.dispatch('updateHeights');
       } else {
         this.readData(1, { perPage });
       }
@@ -1282,8 +1283,8 @@ export default class Grid {
    * @param {String} requestType - 'createData|updateData|deleteData|modifyData'
    * @param {object} options - Options
    *      @param {String} [options.url] - URL to send the request
-   *      @param {boolean} [options.hasDataParam=true] - Whether the row-data to be included in the request param
-   *      @param {boolean} [options.checkedOnly=true] - Whether the request param only contains checked rows
+   *      @param {String} [options.method] - method to send the request
+   *      @param {boolean} [options.checkedOnly=false] - Whether the request param only contains checked rows
    *      @param {boolean} [options.modifiedOnly=true] - Whether the request param only contains modified rows
    *      @param {boolean} [options.showConfirm=true] - Whether to show confirm dialog before sending request
    *      @param {boolean} [options.withCredentials=false] - Use withCredentials flag of XMLHttpRequest for ajax requests if true

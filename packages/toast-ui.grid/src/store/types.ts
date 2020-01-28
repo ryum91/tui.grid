@@ -54,6 +54,7 @@ export type Row = Dictionary<CellValue> & {
   uniqueKey: string;
   rowSpanMap: RowSpanMap;
   _attributes: RowAttributes;
+  _relationListItemMap: Dictionary<ListItem[]>;
 };
 
 export type RowSpanMap = Dictionary<RowSpan>;
@@ -314,6 +315,7 @@ export interface Column {
   readonly defaultValues: { name: string; value: CellValue }[];
   readonly validationColumns: ColumnInfo[];
   readonly ignoredColumns: string[];
+  readonly columnMapWithRelation: Dictionary<ColumnInfo>;
   readonly treeColumnName?: string;
   readonly treeIcon?: boolean;
   readonly treeCascadingCheckbox?: boolean;

@@ -34,7 +34,9 @@ import {
   isObject,
   isUndefined,
   isNumber,
-  findProp
+  findProp,
+  uniq,
+  isEmpty
 } from '../helper/common';
 import { DefaultRenderer } from '../renderer/default';
 import { editorMap } from '../editor/manager';
@@ -47,6 +49,35 @@ const rowHeadersMap = {
   rowNum: '_number',
   checkbox: '_checked'
 };
+
+export function validateRelationColumn(columnInfos: ColumnInfo[]) {
+  const checked: Dictionary<boolean> = {};
+
+  function checkCircularRelation(column: ColumnInfo, relations: string[]) {
+    const { name, relationMap } = column;
+
+    relations.push(name);
+    checked[name] = true;
+
+    if (uniq(relations).length !== relations.length) {
+      throw new Error('Cannot create circular reference between relation columns');
+    }
+
+    if (!isUndefined(relationMap)) {
+      Object.keys(relationMap).forEach(targetName => {
+        const targetColumn = findProp('name', targetName, columnInfos)!;
+        // copy the 'relation' array to prevent to push all relation column into same array
+        checkCircularRelation(targetColumn, [...relations]);
+      });
+    }
+  }
+
+  columnInfos.forEach(column => {
+    if (!checked[column.name]) {
+      checkCircularRelation(column, []);
+    }
+  });
+}
 
 function createBuiltInEditorOptions(editorType: string, options?: Dictionary<any>) {
   const editInfo = editorMap[editorType];
@@ -76,6 +107,9 @@ function createEditorOptions(editor?: OptCellEditor): CellEditorOptions | null {
 }
 
 function createRendererOptions(renderer?: OptCellRenderer): CellRendererOptions {
+  if (isFunction(renderer)) {
+    return { type: renderer };
+  }
   if (isObject(renderer) && !isFunction(renderer) && isFunction(renderer.type)) {
     return renderer as CellRendererOptions;
   }
@@ -351,6 +385,9 @@ export function create({
       columnHeaderInfo
     )
   );
+
+  validateRelationColumn(columnInfos);
+
   const allColumns = rowHeaderInfos.concat(columnInfos);
 
   const {
@@ -426,6 +463,19 @@ export function create({
 
     get ignoredColumns() {
       return this.allColumns.filter(({ ignored }) => ignored).map(({ name }) => name);
+    },
+
+    get columnMapWithRelation() {
+      // copy the array to prevent to affect allColumns property
+      const copiedColumns = [...this.allColumns];
+      copiedColumns.sort((columnA, columnB) => {
+        if (columnA.relationMap?.[columnB.name]) {
+          return -1;
+        }
+        return columnB.relationMap?.[columnA.name] ? 1 : 0;
+      });
+
+      return createMapFromArray(copiedColumns, 'name');
     },
 
     ...(treeColumnName && { treeColumnName, treeIcon, treeCascadingCheckbox })

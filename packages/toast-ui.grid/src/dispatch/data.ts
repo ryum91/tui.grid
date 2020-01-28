@@ -8,9 +8,9 @@ import {
   Row,
   Column,
   Range,
-  PageOptions,
   PagePosition,
-  LoadingState
+  LoadingState,
+  PageOptions
 } from '../store/types';
 import { copyDataToRange, getRangeToPaste } from '../query/clipboard';
 import {
@@ -23,7 +23,13 @@ import {
   findPropIndex
 } from '../helper/common';
 import { OptRow, OptAppendRow, OptRemoveRow } from '../types';
-import { createViewRow, createData, generateDataCreationKey, createRowSpan } from '../store/data';
+import {
+  createViewRow,
+  createData,
+  generateDataCreationKey,
+  createRowSpan,
+  setRowRelationListItems
+} from '../store/data';
 import { notify, isObservable } from '../helper/observable';
 import { changeSelectionRange, initSelection } from './selection';
 import { getEventBus } from '../event/eventBus';
@@ -163,34 +169,34 @@ export function updateHeights(store: Store) {
     : filteredRawData.map(row => getRowHeight(row, rowHeight));
 }
 
-export function updatePageOptions(data: Data, totalCount: number, page?: number) {
-  if (data.pageOptions.useClient) {
+export function updatePageOptions({ data }: Store, pageOptions: PageOptions) {
+  if (!isEmpty(data.pageOptions)) {
     data.pageOptions = {
       ...data.pageOptions,
-      totalCount,
-      page: page || data.pageOptions.page
+      ...pageOptions
     };
   }
 }
 
 export function setValue(store: Store, rowKey: RowKey, columnName: string, value: CellValue) {
+  let gridEvent;
   const { column, data, id } = store;
   const { rawData, sortState } = data;
+  const { visibleColumns, allColumnMap } = column;
   const rowIdx = findIndexByRowKey(data, column, id, rowKey, false);
   const targetRow = rawData[rowIdx];
   if (!targetRow || targetRow[columnName] === value) {
     return;
   }
-
-  const targetColumn = findProp('name', columnName, column.visibleColumns);
-  let gridEvent = new GridEvent({ rowKey, columnName, value });
+  const targetColumn = findProp('name', columnName, visibleColumns);
 
   if (targetColumn && targetColumn.onBeforeChange) {
+    gridEvent = new GridEvent({ rowKey, columnName, value: targetRow[columnName] });
     targetColumn.onBeforeChange(gridEvent);
-  }
 
-  if (!targetRow || gridEvent.isStopped()) {
-    return;
+    if (gridEvent.isStopped()) {
+      return;
+    }
   }
 
   const { rowSpanMap } = targetRow;
@@ -199,6 +205,7 @@ export function setValue(store: Store, rowKey: RowKey, columnName: string, value
   const index = findPropIndex('columnName', columnName, columns);
 
   targetRow[columnName] = value;
+  setRowRelationListItems(targetRow, allColumnMap);
 
   if (index !== -1) {
     sort(store, columnName, columns[index].ascending, true, false);
@@ -283,6 +290,13 @@ export function check(store: Store, rowKey: RowKey) {
   const eventBus = getEventBus(id);
   const gridEvent = new GridEvent({ rowKey });
 
+  setRowAttribute(store, rowKey, 'checked', true);
+  setCheckedAllRows(store);
+
+  if (allColumnMap[treeColumnName]) {
+    changeTreeRowsCheckedState(store, rowKey, true);
+  }
+
   /**
    * Occurs when a checkbox in row header is checked
    * @event Grid#check
@@ -290,13 +304,6 @@ export function check(store: Store, rowKey: RowKey) {
    * @property {Grid} instance - Current grid instance
    */
   eventBus.trigger('check', gridEvent);
-
-  setRowAttribute(store, rowKey, 'checked', true);
-  setCheckedAllRows(store);
-
-  if (allColumnMap[treeColumnName]) {
-    changeTreeRowsCheckedState(store, rowKey, true);
-  }
 }
 
 export function uncheck(store: Store, rowKey: RowKey) {
@@ -305,6 +312,13 @@ export function uncheck(store: Store, rowKey: RowKey) {
   const eventBus = getEventBus(id);
   const gridEvent = new GridEvent({ rowKey });
 
+  setRowAttribute(store, rowKey, 'checked', false);
+  setCheckedAllRows(store);
+
+  if (allColumnMap[treeColumnName]) {
+    changeTreeRowsCheckedState(store, rowKey, false);
+  }
+
   /**
    * Occurs when a checkbox in row header is unchecked
    * @event Grid#uncheck
@@ -312,13 +326,6 @@ export function uncheck(store: Store, rowKey: RowKey) {
    * @property {Grid} instance - Current grid instance
    */
   eventBus.trigger('uncheck', gridEvent);
-
-  setRowAttribute(store, rowKey, 'checked', false);
-  setCheckedAllRows(store);
-
-  if (allColumnMap[treeColumnName]) {
-    changeTreeRowsCheckedState(store, rowKey, false);
-  }
 }
 
 export function checkAll(store: Store, allPage = true) {
@@ -456,7 +463,7 @@ export function appendRow(store: Store, row: OptRow, options: OptAppendRow) {
 
   viewData.splice(at, 0, viewRow);
   rawData.splice(at, 0, rawRow);
-  updatePageOptions(data, pageOptions.useClient ? pageOptions.totalCount! + 1 : 0);
+  updatePageOptions(store, { totalCount: pageOptions.totalCount! + 1 });
   updateHeights(store);
 
   if (at !== rawData.length) {
@@ -489,14 +496,18 @@ export function removeRow(store: Store, rowKey: RowKey, options: OptRemoveRow) {
 
   const nextRow = rawData[rowIdx + 1];
 
-  if (pageOptions.useClient) {
+  if (!isEmpty(pageOptions)) {
     const { perPage, totalCount, page } = pageOptions;
     let modifiedLastPage = Math.floor((totalCount - 1) / perPage);
 
     if ((totalCount - 1) % perPage) {
       modifiedLastPage += 1;
     }
-    updatePageOptions(data, totalCount - 1, modifiedLastPage < page ? modifiedLastPage : page);
+
+    updatePageOptions(store, {
+      totalCount: totalCount - 1,
+      page: modifiedLastPage < page ? modifiedLastPage : page
+    });
   }
 
   viewData.splice(rowIdx, 1);
@@ -534,7 +545,7 @@ export function clearData(store: Store) {
   rowCoords.heights = [];
   data.viewData = [];
   data.rawData = [];
-  updatePageOptions(data, 0);
+  updatePageOptions(store, { totalCount: 0, page: 1 });
   updateAllSummaryValues(store);
   setLoadingState(store, 'EMPTY');
   setCheckedAllRows(store);
@@ -548,10 +559,10 @@ export function resetData(store: Store, inputData: OptRow[]) {
   initSelection(store);
   initSortState(data);
   initFilter(store);
+  updatePageOptions(store, { totalCount: rawData.length, page: 1 });
   data.viewData = viewData;
   data.rawData = rawData;
-  updatePageOptions(data, rawData.length);
-  updateHeightsWithFilteredData(store);
+  updateHeights(store);
   updateAllSummaryValues(store);
   setLoadingState(store, getLoadingState(rawData));
   setCheckedAllRows(store);
@@ -661,10 +672,6 @@ export function removeColumnClassName({ data }: Store, columnName: string, class
   });
 }
 
-export function setPagination({ data }: Store, pageOptions: PageOptions) {
-  data.pageOptions = pageOptions as Required<PageOptions>;
-}
-
 export function movePage(store: Store, page: number) {
   const { data } = store;
 
@@ -721,9 +728,10 @@ function createFilteredOriginData(data: Data, rowRange: Range, treeColumnName?: 
 export function createObservableData({ column, data, viewport, id }: Store, allRowRange = false) {
   const rowRange: Range = allRowRange ? [0, data.rawData.length] : viewport.rowRange;
   const { treeColumnName } = column;
-  const originData = data.filters
-    ? createFilteredOriginData(data, rowRange, treeColumnName)
-    : createOriginData(data, rowRange, treeColumnName);
+  const originData =
+    data.filters && !allRowRange
+      ? createFilteredOriginData(data, rowRange, treeColumnName)
+      : createOriginData(data, rowRange, treeColumnName);
 
   if (!originData.rows.length) {
     return;
@@ -757,15 +765,15 @@ function changeToObservableTreeData(
 ) {
   const { rows } = originData;
   const { rawData, viewData } = data;
-  const { allColumnMap, treeColumnName, treeIcon } = column;
+  const { columnMapWithRelation, treeColumnName, treeIcon, defaultValues } = column;
 
   // create new creation key for updating the observe function of hoc component
   generateDataCreationKey();
 
   rows.forEach(row => {
     const parentRow = findRowByRowKey(data, column, id, row._attributes.tree!.parentRowKey);
-    const rawRow = createTreeRawRow(row, column.defaultValues, parentRow || null);
-    const viewRow = createViewRow(row, allColumnMap, rawData, treeColumnName, treeIcon);
+    const rawRow = createTreeRawRow(row, defaultValues, parentRow || null, columnMapWithRelation);
+    const viewRow = createViewRow(row, columnMapWithRelation, rawData, treeColumnName, treeIcon);
     const foundIndex = findIndexByRowKey(data, column, id, rawRow.rowKey);
 
     viewData.splice(foundIndex, 1, viewRow);

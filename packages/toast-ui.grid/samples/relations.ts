@@ -1,6 +1,6 @@
-import { Dictionary, ListItem, Relations } from '../src/store/types';
+import { Dictionary, ListItem } from '../src/store/types';
 
-const twoDepthData: Dictionary<ListItem[]> = {
+export const twoDepthData: Dictionary<ListItem[]> = {
   '01': [
     { text: '', value: '' },
     { text: 'Balad/Dance/Pop', value: '01_01' },
@@ -21,7 +21,7 @@ const twoDepthData: Dictionary<ListItem[]> = {
   ]
 };
 
-const threeDepthData: Dictionary<ListItem[]> = {
+export const threeDepthData: Dictionary<ListItem[]> = {
   '01_01': [
     { text: '', value: '' },
     { text: 'I Miss You', value: '01_01_0001' },
@@ -130,7 +130,7 @@ export const data = [
   }
 ];
 
-export const columns = [
+export const sortedColumns = [
   {
     header: 'Category1',
     name: 'category1',
@@ -159,7 +159,7 @@ export const columns = [
           return !value;
         }
       }
-    ] as Relations[]
+    ]
   },
   {
     header: 'Category2',
@@ -184,7 +184,7 @@ export const columns = [
           return !value;
         }
       }
-    ] as Relations[]
+    ]
   },
   {
     header: 'Category3',
@@ -209,6 +209,90 @@ export const columns = [
           { text: 'no', value: '01' },
           { text: 'relation', value: '02' }
         ]
+      }
+    }
+  }
+];
+
+export const unsortedColumns = [
+  {
+    header: 'Category2',
+    name: 'category2',
+    formatter: 'listItemText',
+    editor: {
+      type: 'select',
+      options: {
+        listItems: []
+      }
+    },
+    relations: [
+      {
+        targetNames: ['category3'],
+        listItems({ value }: { value: string }) {
+          return threeDepthData[value];
+        },
+        editable({ value }: { value: string }) {
+          return value !== '01_02';
+        },
+        disabled({ value }: { value: string }) {
+          return !value;
+        }
+      }
+    ]
+  },
+  {
+    header: 'Category1',
+    name: 'category1',
+    formatter: 'listItemText',
+    editor: {
+      type: 'select',
+      options: {
+        listItems: [
+          { text: '', value: '' },
+          { text: 'Domestic', value: '01' },
+          { text: 'Overseas', value: '02' },
+          { text: 'Etc', value: '03' }
+        ]
+      }
+    },
+    relations: [
+      {
+        targetNames: ['category2'],
+        listItems({ value }: { value: string }) {
+          return twoDepthData[value];
+        },
+        editable({ value }: { value: string }) {
+          return value !== '01';
+        },
+        disabled({ value }: { value: string }) {
+          return !value;
+        }
+      }
+    ]
+  },
+  {
+    header: 'No relation',
+    name: 'category4',
+    formatter: 'listItemText',
+    editor: {
+      type: 'select',
+      options: {
+        listItems: [
+          { text: 'Select', value: '' },
+          { text: 'no', value: '01' },
+          { text: 'relation', value: '02' }
+        ]
+      }
+    }
+  },
+  {
+    header: 'Category3',
+    name: 'category3',
+    formatter: 'listItemText',
+    editor: {
+      type: 'select',
+      options: {
+        listItems: []
       }
     }
   }
