@@ -6,9 +6,17 @@ import {
   ModifiedRowsOptions,
   ModifiedDataManager,
   ModifiedRows,
+  RequestTypeCode,
   MutationParams
 } from '../types';
-import { someProp, findIndex, isUndefined, isObject, omit } from '../../helper/common';
+import {
+  someProp,
+  findIndex,
+  isUndefined,
+  omit,
+  isObject,
+  forEachObject
+} from '../../helper/common';
 import { getOriginObject, Observable } from '../../helper/observable';
 
 type ParamNameMap = { [type in ModificationTypeCode]: string };
@@ -38,7 +46,9 @@ export function getDataWithOptions(targetRows: Row[], options: ModifiedRowsOptio
   }
   if (!withRawData) {
     // @ts-ignore
-    rows = rows.map(row => omit(row, '_attributes'));
+    rows = rows.map(row =>
+      omit(row, 'sortKey', 'uniqueKey', '_attributes', '_relationListItemMap', '_disabledPriority')
+    );
   }
   if (rowKeyOnly) {
     return rows.map(row => row.rowKey);
@@ -118,13 +128,20 @@ export function createManager(): ModifiedDataManager {
       }
     },
 
-    clear(rowsMap: MutationParams) {
-      Object.keys(rowsMap).forEach(key => {
-        const rows = rowsMap[key as keyof MutationParams];
-        rows!.forEach((row: Row | RowKey) => {
+    clearSpecificRows(rowsMap: MutationParams) {
+      forEachObject((_, key) => {
+        rowsMap[key]!.forEach((row: Row | RowKey) => {
           spliceAll(isObject(row) ? row.rowKey : row);
         });
-      });
+      }, rowsMap);
+    },
+
+    clear(requestTypeCode: RequestTypeCode) {
+      if (requestTypeCode === 'MODIFY') {
+        this.clearAll();
+        return;
+      }
+      dataMap[requestTypeCode] = [];
     },
 
     clearAll() {

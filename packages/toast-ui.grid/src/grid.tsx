@@ -11,7 +11,8 @@ import {
   OptColumn,
   OptHeader,
   FilterOpt,
-  FilterOptionType
+  FilterOptionType,
+  LifeCycleEventNames
 } from './types';
 import { createStore } from './store/create';
 import { Root } from './view/root';
@@ -34,7 +35,7 @@ import i18n from './i18n';
 import { getText } from './query/clipboard';
 import { getInvalidRows } from './query/validation';
 import { isSupportWindowClipboardData, setClipboardSelection, cls, dataAttr } from './helper/dom';
-import { findPropIndex, isUndefined, mapProp, hasOwnProp } from './helper/common';
+import { findPropIndex, isUndefined, mapProp, hasOwnProp, pick } from './helper/common';
 import { Observable, getOriginObject } from './helper/observable';
 import { createEventBus, EventBus } from './event/eventBus';
 import {
@@ -56,7 +57,8 @@ import {
   DataProvider,
   ModifiedRowsOptions,
   Params,
-  ModifiedDataManager
+  ModifiedDataManager,
+  ModificationTypeCode
 } from './dataSource/types';
 import {
   getParentRow,
@@ -252,6 +254,7 @@ if ((module as any).hot) {
  *      @param {boolean} [options.usageStatistics=true] Send the hostname to google analytics.
  *          If you do not want to send the hostname, this option set to false.
  *      @param {function} [options.onGridMounted] - The function that will be called after rendering the grid.
+ *      @param {function} [options.onGridUpdated] - The function that will be called after updating the all data of the grid and rendering the grid.
  *      @param {function} [options.onGridBeforeDestroy] - The function that will be called before destroying the grid.
  */
 export default class Grid {
@@ -274,7 +277,7 @@ export default class Grid {
   public usageStatistics: boolean;
 
   public constructor(options: OptGrid) {
-    const { el, usageStatistics = true, onGridMounted, onGridBeforeDestroy } = options;
+    const { el, usageStatistics = true } = options;
     const id = register(this);
     const store = createStore(id, options);
     const dispatch = createDispatcher(store);
@@ -305,16 +308,12 @@ export default class Grid {
       this.dataManager.setOriginData(options.data);
     }
 
-    this.gridEl = render(
-      <Root
-        store={store}
-        dispatch={dispatch}
-        rootElement={el}
-        onGridMounted={onGridMounted}
-        onGridBeforeDestroy={onGridBeforeDestroy}
-      />,
-      el
-    );
+    const lifeCycleEvent = pick(options, 'onGridMounted', 'onGridBeforeDestroy', 'onGridUpdated');
+    Object.keys(lifeCycleEvent).forEach(eventName => {
+      this.eventBus.on(eventName, lifeCycleEvent[eventName as LifeCycleEventNames]);
+    });
+
+    this.gridEl = render(<Root store={store} dispatch={dispatch} rootElement={el} />, el);
   }
 
   /**
@@ -606,10 +605,10 @@ export default class Grid {
    * Focus to the cell identified by given rowKey and columnName.
    * @param {Number|String} rowKey - rowKey
    * @param {String} columnName - columnName
-   * @param {Boolean} [setScroll=false] - if set to true, move scroll position to focused position
+   * @param {Boolean} [setScroll=true] - if set to true, move scroll position to focused position
    * @returns {Boolean} true if focused cell is changed
    */
-  public focus(rowKey: RowKey, columnName: string, setScroll?: boolean) {
+  public focus(rowKey: RowKey, columnName: string, setScroll = true) {
     this.dispatch('setFocusInfo', rowKey, columnName, true);
 
     if (setScroll) {
@@ -629,14 +628,14 @@ export default class Grid {
    * Focus to the cell identified by given rowIndex and columnIndex.
    * @param {Number} rowIndex - rowIndex
    * @param {Number} columnIndex - columnIndex
-   * @param {boolean} [setScroll=false] - if set to true, scroll to focused cell
+   * @param {boolean} [setScroll=true] - if set to true, scroll to focused cell
    * @returns {Boolean} true if success
    */
-  public focusAt(rowIndex: number, columnIndex: number, isScrollable?: boolean) {
+  public focusAt(rowIndex: number, columnIndex: number, setScroll?: boolean) {
     const { rowKey, columnName } = getCellAddressByIndex(this.store, rowIndex, columnIndex);
 
     if (!isUndefined(rowKey) && columnName) {
-      return this.focus(rowKey, columnName, isScrollable);
+      return this.focus(rowKey, columnName, setScroll);
     }
     return false;
   }
@@ -652,7 +651,7 @@ export default class Grid {
    * Set focus on the cell at the specified index of row and column and starts to edit.
    * @param {number|string} rowKey - The unique key of the row
    * @param {string} columnName - The name of the column
-   * @param {boolean} [setScroll=false] - If set to true, the view will scroll to the cell element.
+   * @param {boolean} [setScroll=true] - If set to true, the view will scroll to the cell element.
    */
   public startEditing(rowKey: RowKey, columnName: string, setScroll?: boolean) {
     if (this.focus(rowKey, columnName, setScroll)) {
@@ -664,7 +663,7 @@ export default class Grid {
    * Set focus on the cell at the specified index of row and column and starts to edit.
    * @param {number|string} rowIndex - The index of the row
    * @param {string} columnIndex - The index of the column
-   * @param {boolean} [setScroll=false] - If set to true, the view will scroll to the cell element.
+   * @param {boolean} [setScroll=true] - If set to true, the view will scroll to the cell element.
    */
   public startEditingAt(rowIndex: number, columnIndex: number, setScroll?: boolean) {
     const { rowKey, columnName } = getCellAddressByIndex(this.store, rowIndex, columnIndex);
@@ -1039,6 +1038,22 @@ export default class Grid {
    */
   public enableRowCheck(rowKey: RowKey) {
     this.dispatch('setRowCheckDisabled', false, rowKey);
+  }
+
+  /**
+   * Disable the column identified by the column name.
+   * @param {string} columnName - column name
+   */
+  public disableColumn(columnName: string) {
+    this.dispatch('setColumnDisabled', true, columnName);
+  }
+
+  /**
+   * Enable the column identified by the column name.
+   * @param {string} columnName - column name
+   */
+  public enableColumn(columnName: string) {
+    this.dispatch('setColumnDisabled', false, columnName);
   }
 
   /**
@@ -1572,5 +1587,26 @@ export default class Grid {
    */
   public moveRow(rowKey: RowKey, targetIndex: number) {
     this.dispatch('moveRow', rowKey, targetIndex);
+  }
+
+  /**
+   * Set parameters to be sent with the request to communicate with the server.
+   * @param {Object} params - parameters to send to the server
+   */
+  public setRequestParams(params: Dictionary<any>) {
+    this.dataProvider.setRequestParams(params);
+  }
+
+  /**
+   * clear the modified data that is returned as the result of 'getModifiedRows' method.
+   * If the 'type' parameter is undefined, all modified data is cleared.
+   * @param {string} type - The modified type
+   */
+  public clearModifiedData(type?: ModificationTypeCode) {
+    if (type) {
+      this.dataManager.clear(type);
+    } else {
+      this.dataManager.clearAll();
+    }
   }
 }

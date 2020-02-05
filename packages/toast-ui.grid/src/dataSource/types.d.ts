@@ -26,6 +26,7 @@ export type DataProvider = {
   request: (requestType: RequestType, options: RequestOptions) => void | never;
   readData: (page: number, data?: Params, resetData?: boolean) => void | never;
   reloadData: () => void | never;
+  setRequestParams: (params: Dictionary<any>) => void | never;
 };
 
 export type ContentType = 'application/x-www-form-urlencoded' | 'application/json';
@@ -37,6 +38,8 @@ export type Config = {
   dispatch: Dispatch;
   setLastRequiredData: (params: Params) => void;
   getLastRequiredData: () => Params;
+  setRequestParams: (params: Dictionary<any>) => void;
+  getRequestParams: () => Dictionary<any>;
 };
 
 export type DataSource = {
@@ -116,6 +119,7 @@ export interface ModifiedDataManager {
   isModified: () => boolean;
   isModifiedByType: (type: ModificationTypeCode) => boolean;
   push: (type: ModificationTypeCode, row: Row) => void;
-  clear: (rowMap: MutationParams) => void;
+  clearSpecificRows: (rowMap: MutationParams) => void;
+  clear: (type: RequestTypeCode) => void;
   clearAll: () => void;
 }

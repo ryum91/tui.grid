@@ -1,5 +1,4 @@
 import { data } from '../../samples/pagination';
-import { cls } from '@/helper/dom';
 import { OptRow } from '@/types';
 
 const PER_PAGE_COUNT = 10;
@@ -38,9 +37,9 @@ function compareColumnCellLength(length: number) {
   if (length) {
     // rowHeader cell length
     const columnLength = columns.length + 1;
-    cy.get(`td.${cls('cell')}`).should('have.length', length * columnLength);
+    cy.getBodyCells().should('have.length', length * columnLength);
   } else {
-    cy.get(`td.${cls('cell')}`).should('not.exist');
+    cy.getBodyCells().should('not.exist');
   }
 }
 

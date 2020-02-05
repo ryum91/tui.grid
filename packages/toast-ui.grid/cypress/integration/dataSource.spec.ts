@@ -273,6 +273,26 @@ describe('API', () => {
     getPageBtn().should('have.length', 8);
     assertPagingData('id', 1, 5);
   });
+
+  context('setRequestParams()', () => {
+    it('with readData API', () => {
+      cy.gridInstance().invoke('setRequestParams', { a: 2 });
+      cy.gridInstance().invoke('readData', 1);
+
+      cy.wait('@readPageWithRequestParams')
+        .its('status')
+        .should('eq', 200);
+    });
+
+    it('with request API', () => {
+      cy.gridInstance().invoke('setRequestParams', { a: 2 });
+      cy.gridInstance().invoke('request', 'updateData', { showConfirm: false });
+
+      cy.wait('@updateData')
+        .its('requestBody')
+        .should('eq', 'a=2');
+    });
+  });
 });
 
 it('server side data is sorted properly when moves page', () => {
@@ -414,26 +434,31 @@ describe('custom request event', () => {
       cy.wrap(onSuccessResponse).should('be.calledWithMatch', { xhr });
     });
   });
+});
 
-  it('stop custom event if prev event is prevented.', () => {
-    cy.wait('@readPage1');
-
-    const onBeforeRequest = cy.stub();
-    const onResponse = (ev: GridEvent) => {
-      ev.stop();
-    };
-    const onSuccessResponse = cy.stub();
-
-    cy.gridInstance().invoke('on', 'beforeRequest', onBeforeRequest);
-    cy.gridInstance().invoke('on', 'response', onResponse);
-    cy.gridInstance().invoke('on', 'successResponse', onSuccessResponse);
-    cy.gridInstance().invoke('removeRow', 10);
-
-    cy.gridInstance().invoke('request', 'modifyData', { showConfirm: false });
-
-    cy.wait('@modifyData');
-
-    cy.wrap(onBeforeRequest).should('be.called');
-    cy.wrap(onSuccessResponse).should('be.not.called');
+it('stop custom event if prev event is prevented.', () => {
+  createGrid({
+    api: {
+      readData: { url: () => '/api/read', method: 'GET' },
+      modifyData: { url: '/api/modify', method: 'POST' }
+    },
+    initialRequest: false
   });
+
+  const onBeforeRequest = cy.stub();
+  const onResponse = (ev: GridEvent) => {
+    ev.stop();
+  };
+  const onSuccessResponse = cy.stub();
+
+  cy.gridInstance().invoke('on', 'beforeRequest', onBeforeRequest);
+  cy.gridInstance().invoke('on', 'response', onResponse);
+  cy.gridInstance().invoke('on', 'successResponse', onSuccessResponse);
+
+  cy.gridInstance().invoke('request', 'modifyData', { showConfirm: false });
+
+  cy.wait('@modifyData');
+
+  cy.wrap(onBeforeRequest).should('be.called');
+  cy.wrap(onSuccessResponse).should('be.not.called');
 });

@@ -59,8 +59,9 @@ function createRequestOptions(ajaxConfig: AjaxConfig, requestOptions = {}) {
 }
 
 function send(config: Config, sendOptions: SendOptions) {
-  const { store, dispatch, hideLoadingBar } = config;
+  const { store, dispatch, hideLoadingBar, getRequestParams } = config;
   const { id } = store;
+  const commonRequestParams = getRequestParams();
   const manager = getDataManager(id);
   const { url, method, options, params, requestTypeCode, ajaxConfig } = sendOptions;
   const { showConfirm, withCredentials } = options;
@@ -75,8 +76,8 @@ function send(config: Config, sendOptions: SendOptions) {
     gridAjax({
       method,
       url: isFunction(url) ? url() : url,
-      params,
-      success: () => manager.clear(params),
+      params: { ...commonRequestParams, ...params },
+      success: () => manager.clearSpecificRows(params),
       preCallback: callback,
       postCallback: callback,
       eventBus: getEventBus(id),

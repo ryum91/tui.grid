@@ -21,6 +21,7 @@ import { unsort } from './sort';
 import { initFilter, unfilter } from './filter';
 import { initSelection } from './selection';
 import { findProp } from '../helper/common';
+import { initScrollPosition } from './viewport';
 
 export function setFrozenColumnCount({ column }: Store, count: number) {
   column.frozenCount = count;
@@ -114,12 +115,14 @@ export function setColumns(store: Store, optColumns: OptColumn[]) {
       relationColumns,
       copyOptions,
       treeColumnOptions,
-      column.columnHeaderInfo
+      column.columnHeaderInfo,
+      !!optColumn.disabled
     )
   );
 
   const dataCreationKey = generateDataCreationKey();
 
+  initScrollPosition(store);
   initFocus(store);
   initSelection(store);
 
@@ -161,10 +164,10 @@ function setColumnsHiddenValue(column: Column, columnName: string, hidden: boole
       complexColumn.childNames.forEach(childName => {
         allColumnMap[childName].hidden = hidden;
       });
+      return;
     }
-  } else if (allColumnMap[columnName]) {
-    allColumnMap[columnName].hidden = hidden;
   }
+  allColumnMap[columnName].hidden = hidden;
 }
 
 export function hideColumn(store: Store, columnName: string) {
